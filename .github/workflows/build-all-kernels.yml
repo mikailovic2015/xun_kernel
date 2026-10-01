@@ -16,18 +16,18 @@ jobs:
         android_version: [15, 16, 17]
     steps:
       - name: Free Disk Space & Install Tools
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl tar
 
       - name: Clone HyperOS Kernel Source
         run: |
-          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-r-oss kernel-src || \
+          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-s-oss kernel-src || \
+          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-t-oss kernel-src || \
           git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git kernel-src
 
       - name: Set up Clang Toolchain
         run: |
-          mkdir toolchain && cd toolchain
-          wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz
-          tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
+          mkdir -p toolchain
+          curl -sSL https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz | tar -xJ -C toolchain --strip-components=1
 
       - name: Inject KernelSU
         run: |
@@ -44,7 +44,7 @@ jobs:
           echo "CONFIG_KSU=y" >> out/.config
           make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
           mkdir -p $GITHUB_WORKSPACE/out_hyperos
-          cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_hyperos/
+          cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_hyperos/ || true
 
       - name: Upload HyperOS Kernel Artifact
         uses: actions/upload-artifact@v4
@@ -64,7 +64,7 @@ jobs:
         android_version: [15, 16, 17]
     steps:
       - name: Free Disk Space & Install Tools
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl tar
 
       - name: Clone LineageOS Kernel Source
         run: |
@@ -74,9 +74,8 @@ jobs:
 
       - name: Set up Clang Toolchain
         run: |
-          mkdir toolchain && cd toolchain
-          wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz
-          tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
+          mkdir -p toolchain
+          curl -sSL https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz | tar -xJ -C toolchain --strip-components=1
 
       - name: Inject KernelSU
         run: |
@@ -93,7 +92,7 @@ jobs:
           echo "CONFIG_KSU=y" >> out/.config
           make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
           mkdir -p $GITHUB_WORKSPACE/out_lineage
-          cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_lineage/
+          cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_lineage/ || true
 
       - name: Upload LineageOS Kernel Artifact
         uses: actions/upload-artifact@v4
