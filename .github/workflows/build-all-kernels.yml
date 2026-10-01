@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ==========================================
-  # 1. HYPEROS KERNEL
-  # ==========================================
   build-hyperos:
     name: HyperOS Kernel (Android ${{ matrix.android_version }})
     runs-on: ubuntu-latest
@@ -15,19 +12,16 @@ jobs:
       matrix:
         android_version: [15, 16, 17]
     steps:
-      - name: Free Disk Space & Install Tools
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl tar
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl gcc-aarch64-linux-gnu
 
       - name: Clone HyperOS Kernel Source
         run: |
           git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-s-oss kernel-src || \
           git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-t-oss kernel-src || \
           git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git kernel-src
-
-      - name: Set up Clang Toolchain
-        run: |
-          mkdir -p toolchain
-          curl -sSL https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz | tar -xJ -C toolchain --strip-components=1
 
       - name: Inject KernelSU
         run: |
@@ -37,7 +31,6 @@ jobs:
       - name: Compile HyperOS Kernel
         run: |
           cd kernel-src
-          export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
           make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/bengal-perf_defconfig || make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- bengal_defconfig
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
@@ -52,9 +45,6 @@ jobs:
           name: HyperOS-Kernel-Android-${{ matrix.android_version }}
           path: out_hyperos/
 
-  # ==========================================
-  # 2. LINEAGEOS / AOSP KERNEL
-  # ==========================================
   build-lineage:
     name: LineageOS Kernel (Android ${{ matrix.android_version }})
     runs-on: ubuntu-latest
@@ -63,19 +53,16 @@ jobs:
       matrix:
         android_version: [15, 16, 17]
     steps:
-      - name: Free Disk Space & Install Tools
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl tar
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl gcc-aarch64-linux-gnu
 
       - name: Clone LineageOS Kernel Source
         run: |
           git clone --depth=1 https://github.com/LineageOS/android_kernel_qcom_sm6225.git kernel-src || \
           git clone --depth=1 https://github.com/therealmodder/android_kernel_xiaomi_bengal.git kernel-src || \
           git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git kernel-src
-
-      - name: Set up Clang Toolchain
-        run: |
-          mkdir -p toolchain
-          curl -sSL https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz | tar -xJ -C toolchain --strip-components=1
 
       - name: Inject KernelSU
         run: |
@@ -85,7 +72,6 @@ jobs:
       - name: Compile LineageOS Kernel
         run: |
           cd kernel-src
-          export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
           make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/bengal-perf_defconfig || make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- bengal_defconfig
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
