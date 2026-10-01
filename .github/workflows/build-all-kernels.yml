@@ -12,7 +12,7 @@ jobs:
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git
 
       - name: Clone Kernel Source
-        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.xun-r-oss.git -b main kernel-src
+        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-r-oss kernel-src
 
       - name: Set up Clang
         run: mkdir toolchain && cd toolchain && wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz && tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
@@ -43,7 +43,7 @@ jobs:
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git
 
       - name: Clone Kernel Source
-        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.xun-r-oss.git -b main kernel-src
+        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-r-oss kernel-src
 
       - name: Set up Clang
         run: mkdir toolchain && cd toolchain && wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz && tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
@@ -74,7 +74,7 @@ jobs:
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git
 
       - name: Clone Kernel Source
-        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.xun-r-oss.git -b main kernel-src
+        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-r-oss kernel-src
 
       - name: Set up Clang
         run: mkdir toolchain && cd toolchain && wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz && tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
