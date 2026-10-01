@@ -7,7 +7,6 @@ jobs:
   build-hyperos:
     name: HyperOS Kernel (Android ${{ matrix.android_version }})
     runs-on: ubuntu-latest
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -32,19 +31,18 @@ jobs:
           cd kernel-src
           chmod +x scripts/kconfig/* scripts/* || true
           
-          # Склеиваем файлы конфигурации во временный фрагмент
           cat arch/arm64/configs/gki_defconfig > merge_config.fragment
           [ -f "arch/arm64/configs/vendor/bengal_GKI.config" ] && cat arch/arm64/configs/vendor/bengal_GKI.config >> merge_config.fragment
-          [ -f "arch/arm64/configs/vendor/bengal_consolidate.config" ] && cat arch/arm64/configs/vendor/bengal_consolidate.config >> merge_fragment.config || true
-          
-          # Генерируем итоговый .config
+          [ -f "arch/arm64/configs/vendor/bengal_consolidate.config" ] && cat arch/arm64/configs/vendor/bengal_consolidate.config >> merge_config.fragment || true
+
           make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- KCONFIG_ALLCONFIG=merge_config.fragment defconfig
-          
+
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
           echo "CONFIG_KSU=y" >> out/.config
-          
-          make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
+
+          make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w" CONFIG_DEBUG_SECTION_MISMATCH=y
+
           mkdir -p $GITHUB_WORKSPACE/out_hyperos
           cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_hyperos/ || true
 
@@ -57,7 +55,6 @@ jobs:
   build-lineage:
     name: LineageOS Kernel (Android ${{ matrix.android_version }})
     runs-on: ubuntu-latest
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -93,7 +90,8 @@ jobs:
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
           echo "CONFIG_KSU=y" >> out/.config
 
-          make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
+          make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w" CONFIG_DEBUG_SECTION_MISMATCH=y
+
           mkdir -p $GITHUB_WORKSPACE/out_lineage
           cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_lineage/ || true
 
