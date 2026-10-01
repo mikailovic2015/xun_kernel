@@ -1,4 +1,4 @@
-name: Build All Kernels (HyperOS & LineageOS for A15, A16, A17)
+name: Build All Kernels (HyperOS & LineageOS)
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ jobs:
   build-hyperos:
     name: HyperOS Kernel (Android ${{ matrix.android_version }})
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -19,9 +20,7 @@ jobs:
 
       - name: Clone HyperOS Kernel Source
         run: |
-          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-s-oss kernel-src || \
-          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-t-oss kernel-src || \
-          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git kernel-src
+          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-t-oss kernel-src
 
       - name: Inject KernelSU
         run: |
@@ -31,12 +30,19 @@ jobs:
       - name: Compile HyperOS Kernel
         run: |
           cd kernel-src
-          DEFCONFIG_FILE=$(find arch/arm64/configs/ -type f \( -name "*bengal*" -o -name "*xun*" -o -name "*perf*" \) | head -n 1 | sed 's|arch/arm64/configs/||')
-          echo "Found defconfig: $DEFCONFIG_FILE"
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- $DEFCONFIG_FILE
+          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- gki_defconfig
+          if [ -f "arch/arm64/configs/vendor/bengal_GKI.config" ]; then
+            ARCH=arm64 ./scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/bengal_GKI.config
+          fi
+          if [ -f "arch/arm64/configs/vendor/bengal_consolidate.config" ]; then
+            ARCH=arm64 ./scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/bengal_consolidate.config
+          fi
+          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+          
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
           echo "CONFIG_KSU=y" >> out/.config
+          
           make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
           mkdir -p $GITHUB_WORKSPACE/out_hyperos
           cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_hyperos/ || true
@@ -50,6 +56,7 @@ jobs:
   build-lineage:
     name: LineageOS Kernel (Android ${{ matrix.android_version }})
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -62,9 +69,8 @@ jobs:
 
       - name: Clone LineageOS Kernel Source
         run: |
-          git clone --depth=1 https://github.com/LineageOS/android_kernel_qcom_sm6225.git kernel-src || \
           git clone --depth=1 https://github.com/therealmodder/android_kernel_xiaomi_bengal.git kernel-src || \
-          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git kernel-src
+          git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-t-oss kernel-src
 
       - name: Inject KernelSU
         run: |
@@ -74,12 +80,19 @@ jobs:
       - name: Compile LineageOS Kernel
         run: |
           cd kernel-src
-          DEFCONFIG_FILE=$(find arch/arm64/configs/ -type f \( -name "*bengal*" -o -name "*xun*" -o -name "*perf*" \) | head -n 1 | sed 's|arch/arm64/configs/||')
-          echo "Found defconfig: $DEFCONFIG_FILE"
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- $DEFCONFIG_FILE
+          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- gki_defconfig
+          if [ -f "arch/arm64/configs/vendor/bengal_GKI.config" ]; then
+            ARCH=arm64 ./scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/bengal_GKI.config
+          fi
+          if [ -f "arch/arm64/configs/vendor/bengal_consolidate.config" ]; then
+            ARCH=arm64 ./scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/bengal_consolidate.config
+          fi
+          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
           echo "CONFIG_KSU=y" >> out/.config
+
           make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
           mkdir -p $GITHUB_WORKSPACE/out_lineage
           cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_lineage/ || true
