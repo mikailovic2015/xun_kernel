@@ -1,97 +1,95 @@
-name: Build All Kernels (Android 15, 16, 17)
+name: Build All Kernels (HyperOS & LineageOS for A15, A16, A17)
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-a15:
-    name: Build Kernel for Android 15
+  # ==========================================
+  # HYPEROS KERNELS (Android 15, 16, 17)
+  # ==========================================
+  build-hyperos:
+    name: Build HyperOS Kernel (A15/A16/A17)
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        android_version: [15, 16, 17]
     steps:
       - name: Free Disk Space
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl
 
-      - name: Clone Kernel Source
-        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-r-oss kernel-src
+      - name: Clone HyperOS Kernel Source
+        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b bengal-p-oss kernel-src
 
-      - name: Set up Clang
-        run: mkdir toolchain && cd toolchain && wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz && tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
+      - name: Set up Clang Toolchain
+        run: |
+          mkdir toolchain && cd toolchain
+          wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz
+          tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
 
-      - name: Compile Android 15 Kernel
+      - name: Inject KernelSU
+        run: |
+          cd kernel-src
+          curl -LSs "https://raw.githubusercontent.com/twa2008/KernelSU/main/kernel/setup.sh" | bash - || true
+
+      - name: Compile HyperOS Kernel
         run: |
           cd kernel-src
           export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/xun_defconfig || make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/bengal-perf_defconfig
+          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/bengal-perf_defconfig
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
           echo "CONFIG_KSU=y" >> out/.config
           make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
-          mkdir -p $GITHUB_WORKSPACE/out_a15 && cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_a15/
+          mkdir -p $GITHUB_WORKSPACE/out_hyperos
+          cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_hyperos/
 
-      - name: Upload Android 15 Kernel
+      - name: Upload HyperOS Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kernel-Android-15
-          path: out_a15/
+          name: HyperOS-Kernel-Android-${{ matrix.android_version }}
+          path: out_hyperos/
 
-  build-a16:
-    name: Build Kernel for Android 16
-    needs: build-a15
+  # ==========================================
+  # LINEAGEOS / AOSP KERNELS (Android 15, 16, 17)
+  # ==========================================
+  build-lineage:
+    name: Build LineageOS Kernel (A15/A16/A17)
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        android_version: [15, 16, 17]
     steps:
       - name: Free Disk Space
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl
 
-      - name: Clone Kernel Source
-        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-r-oss kernel-src
+      - name: Clone LineageOS / AOSP Kernel Source
+        run: git clone --depth=1 https://github.com/LineageOS/android_kernel_xiaomi_bengal.git -b lineage-21.0 kernel-src
 
-      - name: Set up Clang
-        run: mkdir toolchain && cd toolchain && wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz && tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
+      - name: Set up Clang Toolchain
+        run: |
+          mkdir toolchain && cd toolchain
+          wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz
+          tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
 
-      - name: Compile Android 16 Kernel
+      - name: Inject KernelSU
+        run: |
+          cd kernel-src
+          curl -LSs "https://raw.githubusercontent.com/twa2008/KernelSU/main/kernel/setup.sh" | bash - || true
+
+      - name: Compile LineageOS Kernel
         run: |
           cd kernel-src
           export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/xun_defconfig || make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/bengal-perf_defconfig
+          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/bengal-perf_defconfig || make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- bengal_defconfig
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
           echo "CONFIG_KSU=y" >> out/.config
           make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
-          mkdir -p $GITHUB_WORKSPACE/out_a16 && cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_a16/
+          mkdir -p $GITHUB_WORKSPACE/out_lineage
+          cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_lineage/
 
-      - name: Upload Android 16 Kernel
+      - name: Upload LineageOS Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kernel-Android-16
-          path: out_a16/
-
-  build-a17:
-    name: Build Kernel for Android 17
-    needs: build-a16
-    runs-on: ubuntu-latest
-    steps:
-      - name: Free Disk Space
-        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc && sudo apt-get update && sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git
-
-      - name: Clone Kernel Source
-        run: git clone --depth=1 https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git -b xun-r-oss kernel-src
-
-      - name: Set up Clang
-        run: mkdir toolchain && cd toolchain && wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz && tar -xf clang+llvm-16.0.0-x86_64-linux-gnu-ubuntu-22.04.tar.xz --strip-components=1
-
-      - name: Compile Android 17 Kernel
-        run: |
-          cd kernel-src
-          export PATH="$GITHUB_WORKSPACE/toolchain/bin:$PATH"
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/xun_defconfig || make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- vendor/bengal-perf_defconfig
-          echo "CONFIG_KALLSYMS=y" >> out/.config
-          echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
-          echo "CONFIG_KSU=y" >> out/.config
-          make -j$(nproc) O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu-
-          mkdir -p $GITHUB_WORKSPACE/out_a17 && cp out/arch/arm64/boot/Image* $GITHUB_WORKSPACE/out_a17/
-
-      - name: Upload Android 17 Kernel
-        uses: actions/upload-artifact@v4
-        with:
-          name: Kernel-Android-17
-          path: out_a17/
+          name: LineageOS-Kernel-Android-${{ matrix.android_version }}
+          path: out_lineage/
