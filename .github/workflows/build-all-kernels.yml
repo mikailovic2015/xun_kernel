@@ -16,7 +16,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl gcc-aarch64-linux-gnu
+          sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl gcc-aarch64-linux-gnu kmod rsync
 
       - name: Clone HyperOS Kernel Source
         run: |
@@ -30,14 +30,15 @@ jobs:
       - name: Compile HyperOS Kernel
         run: |
           cd kernel-src
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- gki_defconfig
-          if [ -f "arch/arm64/configs/vendor/bengal_GKI.config" ]; then
-            ARCH=arm64 ./scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/bengal_GKI.config
-          fi
-          if [ -f "arch/arm64/configs/vendor/bengal_consolidate.config" ]; then
-            ARCH=arm64 ./scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/bengal_consolidate.config
-          fi
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+          chmod +x scripts/kconfig/* scripts/* || true
+          
+          # Склеиваем файлы конфигурации во временный фрагмент
+          cat arch/arm64/configs/gki_defconfig > merge_config.fragment
+          [ -f "arch/arm64/configs/vendor/bengal_GKI.config" ] && cat arch/arm64/configs/vendor/bengal_GKI.config >> merge_config.fragment
+          [ -f "arch/arm64/configs/vendor/bengal_consolidate.config" ] && cat arch/arm64/configs/vendor/bengal_consolidate.config >> merge_fragment.config || true
+          
+          # Генерируем итоговый .config
+          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- KCONFIG_ALLCONFIG=merge_config.fragment defconfig
           
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
@@ -65,7 +66,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl gcc-aarch64-linux-gnu
+          sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex libelf-dev clang lld git curl gcc-aarch64-linux-gnu kmod rsync
 
       - name: Clone LineageOS Kernel Source
         run: |
@@ -80,14 +81,13 @@ jobs:
       - name: Compile LineageOS Kernel
         run: |
           cd kernel-src
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- gki_defconfig
-          if [ -f "arch/arm64/configs/vendor/bengal_GKI.config" ]; then
-            ARCH=arm64 ./scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/bengal_GKI.config
-          fi
-          if [ -f "arch/arm64/configs/vendor/bengal_consolidate.config" ]; then
-            ARCH=arm64 ./scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/bengal_consolidate.config
-          fi
-          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+          chmod +x scripts/kconfig/* scripts/* || true
+          
+          cat arch/arm64/configs/gki_defconfig > merge_config.fragment
+          [ -f "arch/arm64/configs/vendor/bengal_GKI.config" ] && cat arch/arm64/configs/vendor/bengal_GKI.config >> merge_config.fragment
+          [ -f "arch/arm64/configs/vendor/bengal_consolidate.config" ] && cat arch/arm64/configs/vendor/bengal_consolidate.config >> merge_config.fragment || true
+
+          make O=out ARCH=arm64 CC=clang LLVM=1 CROSS_COMPILE=aarch64-linux-gnu- KCONFIG_ALLCONFIG=merge_config.fragment defconfig
 
           echo "CONFIG_KALLSYMS=y" >> out/.config
           echo "CONFIG_KALLSYMS_ALL=y" >> out/.config
